@@ -6,6 +6,7 @@ import ipywidgets as widgets
 from IPython.display import display
 import datetime
 import warnings
+import matplotlib
 warnings.filterwarnings('ignore')
 
 #data
@@ -75,5 +76,15 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', Average =
     ax.get_legend().remove()
     ax2.get_legend().remove()
     ax2.legend(lines + lines2, labels + labels2, loc=0)
+    ax2.grid(False)
+    
+    #Aligning the grids
+    l = ax.get_ylim()
+    l2 = ax2.get_ylim()
+    print(l,l2)
+    f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
+    ticks = f(ax.get_yticks())
+    ax2.yaxis.set_major_locator(matplotlib.ticker.FixedLocator(ticks))
+    
     plt.show()
     

@@ -1,0 +1,11 @@
+# Don't track content of these folders
+RemoteSystemsTempFiles/
+.metadata/
+*.pydevproject
+*.project
+.pydevproject
+.project
+dask-worker-space/
+*.pyc
+.ipynb_checkpoints/
+.git/

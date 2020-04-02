@@ -11,12 +11,12 @@ warnings.filterwarnings('ignore')
 #data
 confirmed = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
 death = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv')
-countryList = confirmed['Country/Region'].to_list()
+countryList = confirmed['Country/Region'].unique()
 
 @interact(Country1=countryList,Country2=countryList,Country3=countryList, Average = (2,20))
 def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', Average = 10):
     countries = [Country1, Country2, Country3]
-    plt.style.use('ggplot')
+    plt.style.use('seaborn')
     fig, ax = plt.subplots(figsize=(15,8))
     ax2 = ax.twinx()
     colours = ['#6077d1', '#2d8040', '#ba2736']
@@ -53,12 +53,14 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', Average =
 
         #Plot
         colour = colours[cIndex]
-        confDaily.plot(y = country, marker = 'o', linewidth = 0, ax=ax, label = '_nolegend_',
-                       markersize = 6, markeredgewidth=0, alpha = 0.5,c=colour)
         deathDaily.plot(y = country, marker = 'P', linewidth = 0, ax=ax2, label = '_nolegend_',
                         markersize = 6, markeredgewidth=0, alpha = 0.5,c=colour)
-        confRollAvg.plot(y = country, ax=ax, label= '{} (Confirmed)'.format(country),c=colour)
+        confDaily.plot(y = country, marker = 'o', linewidth = 0, ax=ax, label = '_nolegend_',
+                       markersize = 6, markeredgewidth=0, alpha = 0.5,c=colour)
+        
         deathRollAvg.plot(y = country, linestyle= '--',ax=ax2, label = '{} (Death)'.format(country),c=colour)
+        confRollAvg.plot(y = country, ax=ax, label= '{} (Confirmed)'.format(country),c=colour)
+        
         
         cIndex+=1
 

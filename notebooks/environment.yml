@@ -1,0 +1,8 @@
+name: COVID-19_environment
+channels:
+  - conda-forge
+dependencies:
+  - python
+  - numpy
+  - pandas
+  - plotly

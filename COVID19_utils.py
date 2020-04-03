@@ -69,7 +69,7 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAv
     
     fig = make_subplots(rows=2, cols=1,
                         subplot_titles=('Daily Confirmed Death', 'Daily Confirmed Cases'),
-                        vertical_spacing = 0.05,
+                        vertical_spacing = 0.1,
                         shared_xaxes=True,
                         x_title='Date')
     
@@ -116,7 +116,9 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAv
         
         cIndex+=1
 
-    fig.update_layout(height=800, width=1000, title_text="<b>COVID-19 Daily Stats</b>",
+    fig.update_layout(height=800, width=1000,
+                      title_text="<b>COVID-19 Daily Stats</b><br />(Last Update {})".format(datetime.datetime.strftime(df.index[-1],
+                                                                                                                       '%Y-%m-%d')),
                       legend_title='<b>{} Day Rolling Avg</b>'.format(RollingAvg),
                      legend=dict(x=0.01, y=0.99),
                      template='plotly_dark')

@@ -1,90 +1,123 @@
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
 from ipywidgets import interact, interactive, fixed, interact_manual
 import ipywidgets as widgets
-from IPython.display import display
 import datetime
 import warnings
-import matplotlib
+from plotly.subplots import make_subplots
+import plotly.graph_objs as go
 warnings.filterwarnings('ignore')
+
 
 #data
 confirmed = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
 death = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv')
 countryList = confirmed['Country/Region'].unique()
 
-@interact(Country1=countryList,Country2=countryList,Country3=countryList, Average = (2,20))
-def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', Average = 10):
-    countries = [Country1, Country2, Country3]
-    plt.style.use('seaborn')
-    fig, ax = plt.subplots(figsize=(15,8))
-    ax2 = ax.twinx()
-    colours = ['#6077d1', '#2d8040', '#ba2736']
-    cIndex = 0
-
-    for country in countries:
-        countryConf =  confirmed[confirmed['Country/Region'] == country]
-        countryDeath =  death[death['Country/Region'] == country]
-
+def getCountryStats(country,window):
+    '''
+    To extract statistics for the given country.
+    Returns pd.DataFrame
+    '''
+    retDf = pd.DataFrame()
+    dfDict = {'Confirmed':confirmed, 'Death': death}
+    firstIndexList = []
+    
+    for dfName in dfDict:
+        df = dfDict[dfName]
+        countryDf =  df[df['Country/Region'] == country]
+        
         #Select country data, not the province/state/territory
         if country not in ['China', 'Canada', 'Australia']:
-            countryConf = countryConf[pd.isna(countryConf['Province/State'])]
-            countryDeath = countryDeath[pd.isna(countryDeath['Province/State'])]
-
+            countryDf = countryDf[pd.isna(countryDf['Province/State'])]
+            
         #Time series
         if country in ['China', 'Canada', 'Australia']:
-            confTs = pd.DataFrame(countryConf.sum(0)[4:])
-            deathTs = pd.DataFrame(countryDeath.sum(0)[4:])
+            Ts = pd.DataFrame(countryDf.sum(0)[4:])
         else:
-            confTs = countryConf.transpose()[4:]
-            deathTs = countryDeath.transpose()[4:]
+            Ts = countryDf.transpose()[4:]
 
-        confTs.columns = [country]
-        confDaily = confTs.diff()
-        confDaily.index = pd.to_datetime(confDaily.index)
+        Ts.columns = [country]
+        
+        #Get index of the date to reach 20 confirmed cases
+        firstIndexList.append(Ts.astype('float64')[Ts>=20].idxmin())
 
-        deathTs.columns = [country]
-        deathDaily = deathTs.diff()
-        deathDaily.index = pd.to_datetime(deathDaily.index)
+        #convert cumulative data to daily stats
+        daily = Ts.diff()
+        daily.index = pd.to_datetime(daily.index)
 
         #Rolling average
-        confRollAvg = confDaily[confDaily[country].notnull()].rolling(Average).mean()
-        deathRollAvg = deathDaily[deathDaily[country].notnull()].rolling(Average).mean()
+        rollAvg = daily[daily[country].notnull()].rolling(window).mean()
 
+        #Add to return dataframe
+        retDf[dfName] = daily[country]
+        retDf[dfName+'_'+'rollAvg'] = rollAvg
+        retDf.index = daily.index
+    
+    try:
+        startDate = pd.DataFrame(firstIndexList).min().get_values()[0]
+        retDf = retDf[retDf.index>=startDate]
+    except:
+        pass
+    
+    return retDf
+
+@interact(Country1=countryList,Country2=countryList,Country3=countryList, RollingAvg = (2,20))
+def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAvg = 10):
+    countries = [Country1, Country2, Country3]
+    
+    fig = make_subplots(rows=2, cols=1,
+                        subplot_titles=('Daily Confirmed Death', 'Daily Confirmed Cases'),
+                        vertical_spacing = 0.05,
+                        shared_xaxes=True,
+                        x_title='Date')
+    
+    colours = ['#6077d1', '#2d8040', '#ba2736']
+    cIndex = 0
+    
+    for country in countries:
+        df = getCountryStats(country,RollingAvg)
+                
         #Plot
-        colour = colours[cIndex]
-        deathDaily.plot(y = country, marker = 'P', linewidth = 0, ax=ax2, label = '_nolegend_',
-                        markersize = 6, markeredgewidth=0, alpha = 0.5,c=colour)
-        confDaily.plot(y = country, marker = 'o', linewidth = 0, ax=ax, label = '_nolegend_',
-                       markersize = 6, markeredgewidth=0, alpha = 0.5,c=colour)
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['Death_rollAvg'],
+                name=country,
+                showlegend=False,
+                line=dict(width=3,color=colours[cIndex])),
+            row=1, col=1)
         
-        deathRollAvg.plot(y = country, linestyle= '--',ax=ax2, label = '{} (Death)'.format(country),c=colour)
-        confRollAvg.plot(y = country, ax=ax, label= '{} (Confirmed)'.format(country),c=colour)
+        fig.add_trace(
+            go.Bar(
+                x=df.index,
+                y=df['Death'],
+                showlegend=False,
+                marker=dict(color=colours[cIndex]),opacity=0.4),
+            row=1, col=1)
         
+        fig.add_trace(
+            go.Scatter(
+                x=df.index,
+                y=df['Confirmed_rollAvg'],
+                name=country,
+                line=dict(width=3,color=colours[cIndex])),
+            row=2, col=1)
+        
+        fig.add_trace(
+            go.Bar(
+                x=df.index,
+                y=df['Confirmed'],
+                name=country,
+                showlegend=False,
+                marker=dict(color=colours[cIndex]),opacity=0.4),
+            row=2, col=1)
         
         cIndex+=1
 
-    ax.set_xlim([confDaily.index[0]-datetime.timedelta(5), confDaily.index[-1]+datetime.timedelta(5)])
-    ax.set_title('Daily Confirmed Cases of COVID-19\n{0} to {1}'.format(datetime.datetime.strftime(confDaily.index[0],'%Y-%m-%d'),
-                                                               datetime.datetime.strftime(confDaily.index[-1],'%Y-%m-%d')))
-    ax.set_xlabel('Date')
-    ax.set_ylabel('Confirmed Cases (o)')
-    ax2.set_ylabel('Death (+)')
-    lines, labels = ax.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax.get_legend().remove()
-    ax2.get_legend().remove()
-    ax2.legend(lines + lines2, labels + labels2, loc=0)
-    ax2.grid(False)
-    
-    #Aligning the grids
-    l = ax.get_ylim()
-    l2 = ax2.get_ylim()
-    print(l,l2)
-    f = lambda x : l2[0]+(x-l[0])/(l[1]-l[0])*(l2[1]-l2[0])
-    ticks = f(ax.get_yticks())
-    ax2.yaxis.set_major_locator(matplotlib.ticker.FixedLocator(ticks))
-    
-    plt.show()
-    
+    fig.update_layout(height=800, width=1000, title_text="<b>COVID-19 Daily Stats</b>",
+                      legend_title='<b>{} Day Rolling Avg</b>'.format(RollingAvg),
+                     legend=dict(x=0.01, y=0.99),
+                     template='plotly_dark')
+
+    fig.show()

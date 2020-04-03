@@ -13,6 +13,7 @@ warnings.filterwarnings('ignore')
 confirmed = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_global.csv')
 death = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv')
 countryList = confirmed['Country/Region'].unique()
+countryList.sort()
 
 def getCountryStats(country,window):
     '''
@@ -29,7 +30,7 @@ def getCountryStats(country,window):
         
         #Select country data, not the province/state/territory
         if country not in ['China', 'Canada', 'Australia']:
-            countryDf = countryDf[pd.isna(countryDf['Province/State'])]
+            countryDf = countryDf[pd.isnull(countryDf['Province/State'])]
             
         #Time series
         if country in ['China', 'Canada', 'Australia']:

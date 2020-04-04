@@ -142,7 +142,7 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAv
         y2Range = y2Range[::2]
         
     #Set plot layout
-    fig.update_layout(height=800, width=900,
+    fig.update_layout(height=600, width=900,
                     title_text="<b>COVID-19 Daily Stats</b><br />(Last Update {})".format(datetime.datetime.strftime(df.index[-1],
                                                                                                                    '%Y-%m-%d')),
                     legend_title='<b>{} Day Rolling Avg</b><br />'.format(RollingAvg),

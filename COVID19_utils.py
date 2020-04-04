@@ -6,7 +6,6 @@ import datetime
 import warnings
 from plotly.subplots import make_subplots, _get_grid_subplot
 import plotly.graph_objs as go
-from PIL import Image
 warnings.filterwarnings('ignore')
 
 

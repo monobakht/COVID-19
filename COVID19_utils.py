@@ -14,6 +14,7 @@ confirmed = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID
 death = pd.read_csv(u'https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_deaths_global.csv')
 countryList = confirmed['Country/Region'].unique()
 countryList.sort()
+countryList = np.insert(countryList,0,'None')
 
 def getCountryStats(country,window):
     '''
@@ -64,7 +65,7 @@ def getCountryStats(country,window):
     return retDf
 
 @interact(Country1=countryList,Country2=countryList,Country3=countryList, RollingAvg = (2,20))
-def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAvg = 5):
+def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAvg = 10):
     countries = [Country1, Country2, Country3]
     
     fig = make_subplots(subplot_titles=('Daily Number of Confirmed Cases & Deaths',),
@@ -79,78 +80,77 @@ def plot(Country1='United Kingdom', Country2='Italy',Country3='Spain', RollingAv
     maxConf = 0
     
     for country in countries:
-        df = getCountryStats(country,RollingAvg)
-        
-        #Get data range
-        if df['Confirmed'].max() > maxConf:
-            maxConf = df['Confirmed'].max()
-        if df['Death'].max() > maxDeath:
-            maxDeath = df['Death'].max()
-            
-        #Plot
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['Confirmed'],
-                name=country+' (Cases)',
-                showlegend=False,
-                mode='markers',
-                marker=dict(color=colours[cIndex]),opacity=0.4))
-        
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['Death'],
-                name = country+' (Death)',
-                showlegend=False,
-                mode='markers',
-                marker=dict(color=colours[cIndex]),opacity=0.4, marker_symbol='cross'),
-        secondary_y=True)
-        
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['Confirmed_rollAvg'],
-                name=country+' (Cases)',
-                legendgroup=country,
-                line=dict(width=3,color=colours[cIndex])))
-        
-        fig.add_trace(
-            go.Scatter(
-                x=df.index,
-                y=df['Death_rollAvg'],
-                name=country+' (Death)',
-                legendgroup=country,
-                line=dict(width=3,color=colours[cIndex],dash='dot')),
-            secondary_y=True)
-        
-        cIndex+=1
+        if country != 'None':
+            df = getCountryStats(country,RollingAvg)
 
+            #Get data range
+            if df['Confirmed'].max() > maxConf:
+                maxConf = df['Confirmed'].max()
+            if df['Death'].max() > maxDeath:
+                maxDeath = df['Death'].max()
+
+            #Plot
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df['Confirmed'],
+                    name=country+' (Cases)',
+                    showlegend=False,
+                    mode='markers',
+                    marker=dict(color=colours[cIndex]),opacity=0.4))
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df['Death'],
+                    name = country+' (Death)',
+                    showlegend=False,
+                    mode='markers',
+                    marker=dict(color=colours[cIndex]),opacity=0.4, marker_symbol='cross'),
+            secondary_y=True)
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df['Confirmed_rollAvg'],
+                    name=country+' (Cases)',
+                    mode='lines',
+                    legendgroup=country,
+                    line=dict(width=3,color=colours[cIndex])))
+
+            fig.add_trace(
+                go.Scatter(
+                    x=df.index,
+                    y=df['Death_rollAvg'],
+                    name=country+' (Death)',
+                    legendgroup=country,
+                    mode='lines',
+                    line=dict(width=3,color=colours[cIndex],dash='dot')),
+                secondary_y=True)
+
+            cIndex+=1
+    
+    #Get last update date as text
+    try:
+        lastUpdate = datetime.datetime.strftime(df.index[-1],'%Y-%m-%d')
+    except:
+        lastUpdate = ''
+        
     #sync axis range to overlay grids
     rangeMax = max(maxDeath*10, maxConf)
     yMax = ((rangeMax//1000)+3)*1000
     yRange = list(range(0,yMax,1000))
     y2Range = list(range(0,int(yMax/10),100))
-    
-    if len(yRange)<5:
-        yMax = ((rangeMax//100)+3)*100
-        yRange = list(range(0,yMax,100))
-        y2Range = list(range(0,int(yMax/10),10))
-        
-    while len(yRange)>12 :
-        yRange = yRange[::2]
-        y2Range = y2Range[::2]
-        
+
     #Set plot layout
-    fig.update_layout(height=600, width=900,
-                    title_text="<b>COVID-19 Daily Stats</b><br />(Last Update {})".format(datetime.datetime.strftime(df.index[-1],
-                                                                                                                   '%Y-%m-%d')),
+    fig.update_layout(height=600, width=950,
+                    title_text="<b>COVID-19 Daily Stats</b><br />(Last Update {})".format(lastUpdate),
                     legend_title='<b>{} Day Rolling Avg</b><br />'.format(RollingAvg),
                     legend=dict(x=0.05, y=0.90, bordercolor="White", borderwidth=1),
                     template='plotly_dark',
                     xaxis= dict(showgrid = False),
-                    yaxis = dict(range=(0,yRange[-1]), tickvals = yRange[:-1]),
-                    yaxis2 = dict(range=(0,y2Range[-1]), tickvals = y2Range[:-1]),
+                    yaxis = dict(range=(0,yRange[-1]), ticklen=10),
+                    yaxis2 = dict(range=(0,y2Range[-1]), ticklen=10),
                     margin=dict(b=60, t=125, r=25)
                     )
     fig.update_yaxes(title_text="<b>Confirmed Cases (o)</b>", secondary_y=False)
